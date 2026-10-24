@@ -1,0 +1,1744 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Harada Method OW64 — Engineering Internship Command Center</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            slate: {
+              850: '#131c2e',
+              925: '#0b1120',
+              950: '#060a12'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #060a12;
+      color: #f1f5f9;
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.08) 0%, transparent 50%),
+        linear-gradient(to right, rgba(30, 41, 59, 0.25) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(30, 41, 59, 0.25) 1px, transparent 1px);
+      background-size: 100% 100%, 32px 32px, 32px 32px;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0b1120;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+
+    .cell-card {
+      transition: all 0.16s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .cell-card:hover {
+      transform: translateY(-2px);
+      z-index: 10;
+    }
+    .pulse-ring {
+      animation: pulse-ring 2s infinite;
+    }
+    @keyframes pulse-ring {
+      0% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.4); }
+      70% { box-shadow: 0 0 0 8px rgba(56, 189, 248, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); }
+    }
+    .highlight-block {
+      animation: block-flash 1.4s ease-out;
+    }
+    @keyframes block-flash {
+      0%, 30% { box-shadow: 0 0 0 3px #38bdf8, 0 0 25px rgba(56,189,248,0.45); }
+      100% { box-shadow: 0 0 0 0 transparent; }
+    }
+  </style>
+</head>
+<body class="min-h-screen font-sans antialiased selection:bg-sky-500 selection:text-slate-950 pb-16">
+
+  <!-- TOP COMMAND HEADER -->
+  <header class="sticky top-0 z-30 backdrop-blur-xl bg-slate-950/85 border-b border-slate-800/80 shadow-xl">
+    <div class="max-w-[1600px] mx-auto px-3 sm:px-6 py-3">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+        
+        <!-- Brand & Main Target -->
+        <div class="flex items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20 border border-sky-400/30 shrink-0">
+              <span class="font-mono font-bold text-sm tracking-tighter text-white">OW64</span>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-[11px] font-mono uppercase tracking-widest text-sky-400 font-semibold">Harada Method Blueprint</span>
+                <span class="hidden sm:inline-block text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">UNSW Eng Edition</span>
+              </div>
+              <h1 id="mainGoalHeaderTitle" class="text-base sm:text-lg font-bold text-white tracking-tight">Get an Internship by Year 3</h1>
+            </div>
+          </div>
+
+          <!-- Mobile Overall Readiness Badge -->
+          <div class="flex lg:hidden items-center gap-2 bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-xl">
+            <span class="text-xs text-slate-400">Readiness</span>
+            <span id="mobileOverallScore" class="font-mono font-bold text-sm text-sky-400">0%</span>
+          </div>
+        </div>
+
+        <!-- Overall Readiness Bar & Quick Actions -->
+        <div class="flex flex-wrap items-center justify-between lg:justify-end gap-3">
+          
+          <!-- Overall Progress Widget -->
+          <div class="hidden sm:flex items-center gap-3 bg-slate-900/90 border border-slate-800/90 px-4 py-2 rounded-xl min-w-[260px]">
+            <div class="flex-1">
+              <div class="flex justify-between items-baseline mb-1">
+                <span class="text-[11px] font-mono uppercase tracking-wider text-slate-400">Overall Readiness</span>
+                <span id="overallScoreText" class="font-mono font-bold text-sm text-sky-400">0%</span>
+              </div>
+              <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                <div id="overallProgressBar" class="h-full bg-gradient-to-r from-sky-500 via-indigo-500 to-emerald-400 transition-all duration-500" style="width: 0%"></div>
+              </div>
+            </div>
+            <div class="pl-3 border-l border-slate-800 text-right">
+              <div class="text-[10px] font-mono text-slate-400">ACTIVE</div>
+              <div id="activeCellsCount" class="font-mono font-bold text-xs text-slate-200">61/64</div>
+            </div>
+          </div>
+
+          <!-- Filter Dropdown / Pills -->
+          <div class="flex items-center bg-slate-900 border border-slate-800 rounded-xl p-1 text-xs">
+            <button onclick="setFilter('all')" id="filter-all" class="px-2.5 py-1.5 rounded-lg font-medium transition-colors bg-sky-500/20 text-sky-300 border border-sky-500/30">
+              All (64)
+            </button>
+            <button onclick="setFilter('attention')" id="filter-attention" class="px-2.5 py-1.5 rounded-lg font-medium text-slate-400 hover:text-slate-200 transition-colors">
+              Needs Focus
+            </button>
+            <button onclick="setFilter('completed')" id="filter-completed" class="px-2.5 py-1.5 rounded-lg font-medium text-slate-400 hover:text-slate-200 transition-colors">
+              Strong / Done
+            </button>
+            <button onclick="setFilter('wildcard')" id="filter-wildcard" class="px-2.5 py-1.5 rounded-lg font-medium text-slate-400 hover:text-slate-200 transition-colors">
+              Open Slots
+            </button>
+          </div>
+
+          <!-- Bi-Weekly Check-In Wizard Button -->
+          <button onclick="startBiWeeklyReview()" class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-semibold text-xs shadow-lg shadow-sky-500/20 transition-all cursor-pointer">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+            </svg>
+            <span>Bi-Weekly Check-In</span>
+          </button>
+
+          <!-- Backup / Settings Menu Button -->
+          <button onclick="openBackupModal()" title="Backup or Reset Data" class="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+            </svg>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- PILLAR MINI NAVIGATION BAR -->
+      <div id="pillarMiniBar" class="mt-2.5 pt-2.5 border-t border-slate-800/70 flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="max-w-[1600px] mx-auto px-3 sm:px-6 pt-5">
+
+    <!-- HELPER BANNER & VIEW MODE SWITCHER -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 bg-slate-900/60 border border-slate-800/80 rounded-2xl px-4 py-2.5">
+      <div class="flex items-center gap-2.5 text-xs text-slate-300">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+        <span><strong>Click any square</strong> to update your progress in 5 seconds. Your 3 open wildcard slots can be customized anytime.</span>
+      </div>
+      <div class="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+        <span class="text-[11px] font-mono text-slate-400">LAYOUT:</span>
+        <button onclick="setLayoutMode('mandala')" id="layout-mandala" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-800 text-sky-400 border border-sky-500/30">
+          Full 9×9 Grid
+        </button>
+        <button onclick="setLayoutMode('cards')" id="layout-cards" class="px-2.5 py-1 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200">
+          Pillar Focus Cards
+        </button>
+      </div>
+    </div>
+
+    <!-- 9x9 MANDALA GRID CONTAINER (3x3 of 3x3 Blocks) -->
+    <div id="mandalaGridContainer" class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
+      <!-- Populated dynamically by JavaScript -->
+    </div>
+
+  </main>
+
+  <!-- INTERACTIVE GOAL CHECKER MODAL -->
+  <div id="cellModal" class="fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md">
+    <div class="relative w-full max-w-lg rounded-2xl bg-slate-900 border border-slate-700/80 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Modal Top Color Bar -->
+      <div id="modalAccentBar" class="h-1.5 w-full bg-sky-500"></div>
+
+      <div class="p-5 sm:p-6">
+        <!-- Modal Header: Pillar Tag & Review Nav -->
+        <div class="flex items-center justify-between gap-2 mb-3">
+          <div class="flex items-center gap-2">
+            <span id="modalPillarBadge" class="text-[11px] font-mono font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-500/30">
+              Pillar 1
+            </span>
+            <span id="modalTrackerTypeBadge" class="text-[11px] font-mono text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700">
+              Skill Tier
+            </span>
+          </div>
+
+          <div class="flex items-center gap-1.5">
+            <button onclick="toggleEditCellMeta()" id="editMetaBtn" class="text-xs text-slate-400 hover:text-sky-300 px-2 py-1 rounded-lg hover:bg-slate-800 transition-colors flex items-center gap-1">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+              </svg>
+              <span>Customize</span>
+            </button>
+            <button onclick="closeCellModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Goal Title Display -->
+        <div id="modalTitleDisplayWrap" class="mb-5">
+          <h2 id="modalCellTitle" class="text-lg sm:text-xl font-bold text-white leading-snug">Goal Title</h2>
+          <p id="modalLastChecked" class="text-xs font-mono text-slate-400 mt-1">Last check-in: Never</p>
+        </div>
+
+        <!-- Goal Customization Drawer (Hidden unless Customize clicked or Wildcard slot) -->
+        <div id="modalMetaEditor" class="hidden mb-5 p-3.5 rounded-xl bg-slate-950/90 border border-slate-800 space-y-3">
+          <div>
+            <label class="block text-[11px] font-mono uppercase text-slate-400 mb-1">Goal / Skill Title</label>
+            <input type="text" id="editCellTitleInput" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm text-white focus:outline-none focus:border-sky-500" placeholder="Enter specific habit, skill, or milestone..." />
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] font-mono uppercase text-slate-400 mb-1">Checker Style</label>
+              <select id="editCellTypeSelect" onchange="handleTrackerTypeChange()" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm text-white focus:outline-none focus:border-sky-500">
+                <option value="pulse">Bi-Weekly Consistency Pulse</option>
+                <option value="skill">Skill Mastery (1–5 Tiers)</option>
+                <option value="counter">Counter / Target Tally</option>
+                <option value="terms">UNSW Term Checkboxes</option>
+                <option value="checklist">Milestone Checklist</option>
+                <option value="wam">WAM Target Gauge</option>
+                <option value="wildcard">Open Wildcard Slot</option>
+              </select>
+            </div>
+            <div id="editCounterTargetWrap" class="hidden">
+              <label class="block text-[11px] font-mono uppercase text-slate-400 mb-1">Target Number</label>
+              <input type="number" id="editCounterTargetInput" min="1" max="500" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm text-white focus:outline-none focus:border-sky-500" value="10" />
+            </div>
+          </div>
+          <div class="flex justify-end gap-2 pt-1">
+            <button onclick="saveCellMetaChanges()" class="px-3 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold text-xs transition-colors">
+              Apply Goal Setup
+            </button>
+          </div>
+        </div>
+
+        <!-- DYNAMIC TRACKER WIDGET AREA -->
+        <div id="modalTrackerBody" class="bg-slate-950/70 border border-slate-800/90 rounded-2xl p-4 mb-4">
+          <!-- Injected dynamically based on goal type -->
+        </div>
+
+        <!-- Quick Notes / Reflection Input -->
+        <div class="mb-5">
+          <label for="modalCellNotes" class="block text-[11px] font-mono uppercase tracking-wider text-slate-400 mb-1.5">
+            Quick Progress Note / Next Action (Optional)
+          </label>
+          <textarea id="modalCellNotes" rows="2" oninput="saveCurrentCellNotes()" class="w-full px-3.5 py-2 rounded-xl bg-slate-950/90 border border-slate-800 text-xs sm:text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sky-500/70 resize-none" placeholder="Jot down links, specific modules left, or a quick reflection..."></textarea>
+        </div>
+
+        <!-- Modal Footer Controls -->
+        <div class="flex items-center justify-between gap-3 pt-3 border-t border-slate-800">
+          <div class="flex items-center gap-1.5">
+            <button onclick="stepCell(-1)" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition-colors flex items-center gap-1">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+              <span>Prev Cell</span>
+            </button>
+            <button onclick="stepCell(1)" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition-colors flex items-center gap-1">
+              <span>Next Cell</span>
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+
+          <button onclick="closeCellModal()" class="px-5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs sm:text-sm transition-colors shadow-lg shadow-sky-500/20">
+            Done & Save
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- BACKUP / EXPORT / RESET MODAL -->
+  <div id="backupModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+    <div class="w-full max-w-md rounded-2xl bg-slate-900 border border-slate-700 p-6 shadow-2xl">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-base font-bold text-white">Grid Backup & Settings</h3>
+        <button onclick="closeBackupModal()" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+      <p class="text-xs text-slate-400 mb-4">
+        Your Harada grid saves automatically in your browser's local storage. You can also copy a backup snapshot or restore from one below.
+      </p>
+      <div class="space-y-3">
+        <button onclick="exportGridJSON()" class="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-colors flex items-center justify-center gap-2">
+          <span>Copy Backup JSON to Clipboard</span>
+        </button>
+        <div>
+          <label class="block text-[11px] font-mono uppercase text-slate-400 mb-1">Restore from JSON</label>
+          <textarea id="importJsonTextarea" rows="3" class="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono text-slate-300" placeholder="Paste backup JSON here..."></textarea>
+          <button onclick="importGridJSON()" class="mt-2 w-full py-2 px-4 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 text-xs font-semibold transition-colors">
+            Load Backup JSON
+          </button>
+        </div>
+        <div class="pt-4 border-t border-slate-800 flex items-center justify-between">
+          <span class="text-xs text-slate-400">Reset to fresh default state?</span>
+          <button onclick="confirmResetGrid()" id="resetConfirmBtn" class="px-3 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 text-xs font-semibold transition-colors">
+            Reset All Progress
+          </button>
+        </div>
+      </div>
+      <div id="backupToast" class="hidden mt-3 p-2.5 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs text-center font-medium"></div>
+    </div>
+  </div>
+
+  <script>
+    /********************************************************************
+     * DEFAULT HARADA OW64 DATA — TAILORED TO USER'S EXACT 8 PILLARS
+     ********************************************************************/
+    const STORAGE_KEY = 'harada_ow64_unsw_eng_v1';
+
+    const PILLAR_THEMES = {
+      p1: {
+        name: 'Competent Engineering Skills',
+        shortName: '1. Eng Skills',
+        badgeBg: 'bg-sky-500/15',
+        badgeText: 'text-sky-300',
+        badgeBorder: 'border-sky-500/30',
+        blockBorder: 'border-sky-500/35',
+        centerBg: 'bg-gradient-to-br from-sky-950/90 to-slate-900',
+        barColor: 'bg-sky-400',
+        accentHex: '#38bdf8'
+      },
+      p2: {
+        name: 'Communicating, Networking & Socializing',
+        shortName: '2. Networking',
+        badgeBg: 'bg-amber-500/15',
+        badgeText: 'text-amber-300',
+        badgeBorder: 'border-amber-500/30',
+        blockBorder: 'border-amber-500/35',
+        centerBg: 'bg-gradient-to-br from-amber-950/80 to-slate-900',
+        barColor: 'bg-amber-400',
+        accentHex: '#fbbf24'
+      },
+      p3: {
+        name: 'Mental Discipline',
+        shortName: '3. Discipline',
+        badgeBg: 'bg-purple-500/15',
+        badgeText: 'text-purple-300',
+        badgeBorder: 'border-purple-500/30',
+        blockBorder: 'border-purple-500/35',
+        centerBg: 'bg-gradient-to-br from-purple-950/85 to-slate-900',
+        barColor: 'bg-purple-400',
+        accentHex: '#c084fc'
+      },
+      p4: {
+        name: 'Clean / Healthy Lifestyle',
+        shortName: '4. Lifestyle',
+        badgeBg: 'bg-emerald-500/15',
+        badgeText: 'text-emerald-300',
+        badgeBorder: 'border-emerald-500/30',
+        blockBorder: 'border-emerald-500/35',
+        centerBg: 'bg-gradient-to-br from-emerald-950/85 to-slate-900',
+        barColor: 'bg-emerald-400',
+        accentHex: '#34d399'
+      },
+      p5: {
+        name: 'Personal Learning / Life Skills',
+        shortName: '5. Life Skills',
+        badgeBg: 'bg-pink-500/15',
+        badgeText: 'text-pink-300',
+        badgeBorder: 'border-pink-500/30',
+        blockBorder: 'border-pink-500/35',
+        centerBg: 'bg-gradient-to-br from-pink-950/85 to-slate-900',
+        barColor: 'bg-pink-400',
+        accentHex: '#f472b6'
+      },
+      p6: {
+        name: 'Karma',
+        shortName: '6. Karma',
+        badgeBg: 'bg-teal-500/15',
+        badgeText: 'text-teal-300',
+        badgeBorder: 'border-teal-500/30',
+        blockBorder: 'border-teal-500/35',
+        centerBg: 'bg-gradient-to-br from-teal-950/85 to-slate-900',
+        barColor: 'bg-teal-400',
+        accentHex: '#2dd4bf'
+      },
+      p7: {
+        name: 'Engineering Project Portfolio',
+        shortName: '7. Portfolio',
+        badgeBg: 'bg-indigo-500/15',
+        badgeText: 'text-indigo-300',
+        badgeBorder: 'border-indigo-500/30',
+        blockBorder: 'border-indigo-500/35',
+        centerBg: 'bg-gradient-to-br from-indigo-950/85 to-slate-900',
+        barColor: 'bg-indigo-400',
+        accentHex: '#818cf8'
+      },
+      p8: {
+        name: 'Academic and Career Success',
+        shortName: '8. Academic & Career',
+        badgeBg: 'bg-rose-500/15',
+        badgeText: 'text-rose-300',
+        badgeBorder: 'border-rose-500/30',
+        blockBorder: 'border-rose-500/35',
+        centerBg: 'bg-gradient-to-br from-rose-950/85 to-slate-900',
+        barColor: 'bg-rose-400',
+        accentHex: '#fb7185'
+      }
+    };
+
+    const DEFAULT_TERMS = ['Y1 T1', 'Y1 T2', 'Y1 T3', 'Y2 T1', 'Y2 T2', 'Y2 T3'];
+
+    function createDefaultState() {
+      return {
+        mainGoal: 'Get an Internship by Year 3',
+        pillars: [
+          {
+            id: 'p1',
+            title: 'Competent Engineering Skills',
+            cells: [
+              {
+                id: 'p1_c1',
+                title: 'Master advanced CAD',
+                type: 'skill',
+                level: 1,
+                tiers: ['1: Sketch & Part Basics', '2: Surfacing & Assemblies', '3: Top-Down Design', '4: Complex Mechanisms & Drawings', '5: Industry-Ready Speed & PDM'],
+                notes: '',
+                lastChecked: null
+              },
+              {
+                id: 'p1_c2',
+                title: 'CAM competency',
+                type: 'skill',
+                level: 0,
+                tiers: ['1: Setup & WCS', '2: 2D Contour & Pocket', '3: 3D Adaptive Toolpaths', '4: Feeds, Speeds & Post-Process', '5: Multi-Axis & Shop Ready'],
+                notes: '',
+                lastChecked: null
+              },
+              {
+                id: 'p1_c3',
+                title: 'FEA and CFD fundamentals',
+                type: 'skill',
+                level: 0,
+                tiers: ['1: Mesh & Boundary Basics', '2: Static Stress Analysis', '3: Thermal & Modal Studies', '4: Internal/External CFD Flow', '5: Hand-Calculation Validation'],
+                notes: '',
+                lastChecked: null
+              },
+              {
+                id: 'p1_c4',
+                title: 'Master MATLAB automation + skills',
+                type: 'skill',
+                level: 1,
+                tiers: ['1: Scripting & Arrays', '2: Vectorized Math & Loops', '3: Automated Lab Plotting', '4: Data Parsing & Curve Fitting', '5: Full Simulink & Report Automation'],
+                notes: '',
+                lastChecked: null
+              },
+              {
+                id: 'p1_c5',
+                title: 'Complete all UNSW Makerspace workshop modules',
+                type: 'checklist',
+                items: [
+                  { label: 'General Safety Induction Badge', done: false },
+                  { label: '3D Printing (FDM / SLA) Module', done: false },
+                  { label: 'Laser Cutting & Etching Module', done: false },
+                  { label: 'Hand & Power Tools Clearance', done: false },
+                  { label: 'Metalworking / Mill & Lathe Basics', done: false },
+                  { label: 'Electronics & Soldering Bench', done: false }
+                ],
+                notes: '',
+                lastChecked: null
+              },
+              {
+                id: 'p1_c6',
+                title: 'Engineering skills research & mastery (based on LinkedIn skills)',
+                type: 'counter',
+                count: 0,
+                target: 10,
+                unit: 'Job Skills Audited & Practiced',
+                notes: '',
+                lastChecked: null
+              },
+              {
+                id: 'p1_c7',
+                title: '[Open Slot #1 — Click to Add Engineering Skill]',
+                type: 'wildcard',
+                notes: 'Reserved for a high-priority software, hardware, or technical skill you discover.',
+                lastChecked: null
+              },
+              {
+                id: 'p1_c8',
+                title: '[Open Slot #2 — Click to Add Engineering Skill]',
+                type: 'wildcard',
+                notes: 'Reserved for another specialized skill (e.g., PCB Design, GD&T, ROS2, Python).',
+                lastChecked: null
+              }
+            ]
+          },
+          {
+            id: 'p2',
+            title: 'Communicating, Networking & Socializing',
+            cells: [
+              {
+                id: 'p2_c1',
+                title: 'Cold email or call industry professionals',
+                type: 'counter',
+                count: 0,
+                target: 15,
+                unit: 'Industry Outreaches Sent',
+                notes: '',
+                lastChecked: null
+              },
+              {
+                id: 'p2_c2',
+                title: 'Try to get contacts of everyone from workshops and tutorials',
+                type: 'counter',
+                count: 0,
+                target: 30,
+                unit: 'Peers & Tutors Connected',
+                notes: '',
+                lastChecked: null
+              },
+              {
+                id: 'p2_c3',
+                title: 'Attend networking events',
+                type: 'counter',
+                count: 0,
+                target: 8,
+                unit: 'Industry & Society Events Attended',
+                notes: '',
+                lastChecked: null
+              },
+              {
+                id: 'p2_c4',
+                title: 'Sign up for as many workshops and modules as possible',
+                type: 'counter',
+                count: 0,
+                target: 10,
+                unit: 'Workshops Completed',
+                notes: '',
+                lastChecked: null
+              },
+              {
+                id: 'p2_c5',
+                title: 'Ask lecturers one technical question per term',
+                type: 'terms',
+                terms: DEFAULT_TERMS.map(t => ({ label: t, done: false })),
+                notes: '',
+                lastChecked: null
+              },
+              {
+                id: 'p2_c6',
+                title: 'Volunteer for any available leadership roles',
+                type: 'checklist',
+                items: [
+                  { label: 'Course Group Project Team Lead', done: false },
+                  { label: 'Lab / Workshop Team Coordinator', done: false },
+                  { label: 'Engineering Society Sub-Committee', done: false },
+                  { label: 'Student Project Team Lead / Sub-Lead', done: false }
+                ],
+                notes: '',
+                lastChecked: null
+              },
+              {
+                id: 'p2_c7',
+                title: 'Create study groups for all relevant courses',
+                type: 'terms',
+                terms: DEFAULT_TERMS.map(t => ({ label: t, done: false })),
+                notes: '',
+                lastChecked: null
+              },
+              {
+                id: 'p2_c8',
+                title: 'Master talking and speech skills',
+                type: 'skill',
+                level: 1,
+                tiers: ['1: Clear Pacing & Posture', '2: Eliminate Filler Words', '3: 60-Sec Technical Storytelling', '4: Confident Impromptu Q&A', '5: Compelling Presentation Mastery'],
+                notes: '',
+                lastChecked: null
+              }
+            ]
+          },
+          {
+            id: 'p3',
+            title: 'Mental Discipline',
+            cells: [
+              { id: 'p3_c1', title: 'Non-negotiable hour of study every day', type: 'pulse', status: 0, streak: 0, notes: '', lastChecked: null },
+              { id: 'p3_c2', title: '10-min rule when procrastinating', type: 'pulse', status: 0, streak: 0, notes: '', lastChecked: null },
+              { id: 'p3_c3', title: 'Week overview planning every Sunday', type: 'pulse', status: 0, streak: 0, notes: '', lastChecked: null },
+              { id: 'p3_c4', title: 'No games 1 week before exams', type: 'pulse', status: 0, streak: 0, notes: '', lastChecked: null },
+              { id: 'p3_c5', title: 'Keep track of important tasks', type: 'pulse', status: 0, streak: 0, notes: '', lastChecked: null },
+              { id: 'p3_c6', title: 'Constant reminder to keep on track', type: 'pulse', status: 0, streak: 0, notes: '', lastChecked: null },
+              { id: 'p3_c7', title: 'No entertainment during study sessions', type: 'pulse', status: 0, streak: 0, notes: '', lastChecked: null },
+              { id: 'p3_c8', title: 'Always work on two meaningful things per day', type: 'pulse', status: 0, streak: 0, notes: '', lastChecked: null }
+            ]
+          },
+          {
+            id: 'p4',
+            title: 'Clean / Healthy Lifestyle',
+            cells: [
+              { id: 'p4_c1', title: 'Read during commutes or downtimes', type: 'pulse', status: 0, streak: 0, notes: '', lastChecked: null },
+              { id: 'p4_c2', title: 'Meditation music during study sessions', type: 'pulse', status: 0, streak: 0, notes: '', lastChecked: null },
+              { id: 'p4_c3', title: '11–12pm bedtime, 6–7am rise no exceptions', type: 'pulse', status: 0, streak: 0, notes: '', lastChecked: null },
+              { id: 'p4_c4', title: 'Consistent daily calisthenics training', type: 'pulse', status: 0, streak: 0, notes: '', lastChecked: null },
+              { id: 'p4_c5', title: 'Meal prep every Sunday', type: 'pulse', status: 0, streak: 0, notes: '', lastChecked: null },
+              { id: 'p4_c6', title: 'Never skip face routines', type: 'pulse', status: 0, streak: 0, notes: '', lastChecked: null },
+              { id: 'p4_c7', title: 'Monitor daily hydration', type: 'pulse', status: 0, streak: 0, notes: '', lastChecked: null },
+              { id: 'p4_c8', title: 'Cardio training 4 times a week', type: 'pulse', status: 0, streak: 0, notes: '', lastChecked: null }
+            ]
+          },
+          {
+            id: 'p5',
+            title: 'Personal Learning / Life Skills',
+            cells: [
+              {
+                id: 'p5_c1',
+                title: 'Financial literacy / learn trading',
+                type: 'skill',
+                level: 0,
+                tiers: ['1: Budget & Cashflow Tracking', '2: Compound Interest & ETFs', '3: Market & Order Mechanics', '4: Risk & Position Sizing', '5: Long-Term Portfolio Strategy'],
+                notes: '',
+                lastChecked: null
+              },
+              {
+                id: 'p5_c2',
+                title: 'Basic business education / knowledge',
+                type: 'skill',
+                level: 0,
+                tiers: ['1: Unit Economics & Margins', '2: Reading Financial Statements', '3: BOM Costing & ROI', '4: Product & Market Fit', '5: Commercial Engineering Mindset'],
+                notes: '',
+                lastChecked: null
+              },
+              {
+                id: 'p5_c3',
+                title: 'Understand and interpret philosophy studies',
+                type: 'counter',
+                count: 0,
+                target: 6,
+                unit: 'Philosophy Books / Core Texts Explored',
+                notes: '',
+                lastChecked: null
+              },
+              { id: 'p5_c4', title: 'Explore creative arts', type: 'pulse', status: 0, streak: 0, notes: '', lastChecked: null },
+              { id: 'p5_c5', title: 'Video games after completing daily tasks', type: 'pulse', status: 0, streak: 0, notes: '', lastChecked: null },
+              { id: 'p5_c6', title: 'Practice football', type: 'pulse', status: 0, streak: 0, notes: '', lastChecked: null },
+              { id: 'p5_c7', title: 'Read up on daily news', type: 'pulse', status: 0, streak: 0, notes: '', lastChecked: null },
+              {
+                id: 'p5_c8',
+                title: 'Learn to cook Mom’s recipes',
+                type: 'counter',
+                count: 0,
+                target: 8,
+                unit: 'Signature Family Recipes Mastered',
+                notes: '',
+                lastChecked: null
+              }
+            ]
+          },
+          {
+            id: 'p6',
+            title: 'Karma',
+            cells: [
+              { id: 'p6_c1', title: 'Keep desk dusted and tidy', type: 'pulse', status: 0, streak: 0, notes: '', lastChecked: null },
+              { id: 'p6_c2', title: 'Live frugal lifestyle', type: 'pulse', status: 0, streak: 0, notes: '', lastChecked: null },
+              { id: 'p6_c3', title: 'Thank the bus driver', type: 'pulse', status: 0, streak: 0, notes: '', lastChecked: null },
+              { id: 'p6_c4', title: 'Weekly chat with parents', type: 'pulse', status: 0, streak: 0, notes: '', lastChecked: null },
+              { id: 'p6_c5', title: 'Be realistic with yourself and others', type: 'pulse', status: 0, streak: 0, notes: '', lastChecked: null },
+              { id: 'p6_c6', title: 'Fold and store clothes neatly', type: 'pulse', status: 0, streak: 0, notes: '', lastChecked: null },
+              { id: 'p6_c7', title: 'Thank tutors, demonstrators and lecturers before leaving class', type: 'pulse', status: 0, streak: 0, notes: '', lastChecked: null },
+              { id: 'p6_c8', title: 'Always clean up kitchen after finishing', type: 'pulse', status: 0, streak: 0, notes: '', lastChecked: null }
+            ]
+          },
+          {
+            id: 'p7',
+            title: 'Engineering Project Portfolio',
+            cells: [
+              {
+                id: 'p7_c1',
+                title: 'Include university projects in portfolio',
+                type: 'counter',
+                count: 0,
+                target: 6,
+                unit: 'Uni Projects Documented',
+                notes: '',
+                lastChecked: null
+              },
+              {
+                id: 'p7_c2',
+                title: 'At least one project per term',
+                type: 'terms',
+                terms: DEFAULT_TERMS.map(t => ({ label: t, done: false })),
+                notes: '',
+                lastChecked: null
+              },
+              {
+                id: 'p7_c3',
+                title: 'Have a convenient showcase method',
+                type: 'checklist',
+                items: [
+                  { label: 'Clean GitHub / CAD Repo Structure', done: false },
+                  { label: 'High-Res Renders & Build Photos Folder', done: false },
+                  { label: 'Live Portfolio Website / Notion Page', done: false },
+                  { label: '1-Click Link & QR on Resume', done: false }
+                ],
+                notes: '',
+                lastChecked: null
+              },
+              { id: 'p7_c4', title: 'Make sure projects are quality not quantity', type: 'pulse', status: 0, streak: 0, notes: '', lastChecked: null },
+              { id: 'p7_c5', title: 'Measure quantified impact of projects', type: 'pulse', status: 0, streak: 0, notes: '', lastChecked: null },
+              { id: 'p7_c6', title: 'Be experimental and creative with project choices', type: 'pulse', status: 0, streak: 0, notes: '', lastChecked: null },
+              {
+                id: 'p7_c7',
+                title: 'Showcase projects on LinkedIn with project description & motive',
+                type: 'counter',
+                count: 0,
+                target: 6,
+                unit: 'LinkedIn Project Breakdowns Posted',
+                notes: '',
+                lastChecked: null
+              },
+              { id: 'p7_c8', title: 'Make sure projects showcase degree skills', type: 'pulse', status: 0, streak: 0, notes: '', lastChecked: null }
+            ]
+          },
+          {
+            id: 'p8',
+            title: 'Academic and Career Success',
+            cells: [
+              {
+                id: 'p8_c1',
+                title: 'Distinction and 75+ WAM average',
+                type: 'wam',
+                currentWam: 75,
+                targetWam: 75,
+                notes: 'Track cumulative UNSW WAM each term.',
+                lastChecked: null
+              },
+              {
+                id: 'p8_c2',
+                title: 'Complete all available past papers before exams',
+                type: 'terms',
+                terms: DEFAULT_TERMS.map(t => ({ label: t, done: false })),
+                notes: '',
+                lastChecked: null
+              },
+              {
+                id: 'p8_c3',
+                title: 'Create a list of target companies',
+                type: 'counter',
+                count: 0,
+                target: 30,
+                unit: 'Target Engineering Firms Tracked',
+                notes: '',
+                lastChecked: null
+              },
+              {
+                id: 'p8_c4',
+                title: 'Master resume tailoring and creation',
+                type: 'checklist',
+                items: [
+                  { label: 'Clean 1-Page ATS Engineering Format', done: false },
+                  { label: 'Action + Metric Bullet Points', done: false },
+                  { label: 'Reviewed by UNSW Career Services / Senior', done: false },
+                  { label: 'Keyword Tailoring Workflow Ready', done: false }
+                ],
+                notes: '',
+                lastChecked: null
+              },
+              {
+                id: 'p8_c5',
+                title: 'Interview skills mastery',
+                type: 'skill',
+                level: 0,
+                tiers: ['1: 60-Second Personal Pitch', '2: 8 STAR Behavioral Stories Banked', '3: One-Way Video Interview Practice', '4: Technical First-Principles Prep', '5: Full Mock Interview Cleared'],
+                notes: '',
+                lastChecked: null
+              },
+              { id: 'p8_c6', title: 'Attend all PASS and workshops possible', type: 'pulse', status: 0, streak: 0, notes: '', lastChecked: null },
+              {
+                id: 'p8_c7',
+                title: 'Pre-term prep for all courses',
+                type: 'terms',
+                terms: DEFAULT_TERMS.map(t => ({ label: t, done: false })),
+                notes: '',
+                lastChecked: null
+              },
+              {
+                id: 'p8_c8',
+                title: '[Open Slot #3 — Click to Add Academic / Career Goal]',
+                type: 'wildcard',
+                notes: 'Reserved for an upcoming recruitment or academic milestone.',
+                lastChecked: null
+              }
+            ]
+          }
+        ]
+      };
+    }
+
+    /********************************************************************
+     * STATE MANAGEMENT & PROGRESS CALCULATIONS
+     ********************************************************************/
+    let appState = loadState();
+    let currentFilter = 'all'; // 'all', 'attention', 'completed', 'wildcard'
+    let currentLayout = 'mandala'; // 'mandala' or 'cards'
+    let activeModalCell = { pillarIdx: 0, cellIdx: 0 };
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return createDefaultState();
+        const parsed = JSON.parse(raw);
+        if (!parsed || !parsed.pillars || parsed.pillars.length !== 8) {
+          return createDefaultState();
+        }
+        return parsed;
+      } catch (e) {
+        return createDefaultState();
+      }
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+      } catch (e) {
+        console.error('Failed to save to localStorage', e);
+      }
+      renderAll();
+    }
+
+    // Returns 0..100 progress for any single cell
+    function getCellProgress(cell) {
+      if (!cell) return 0;
+      switch (cell.type) {
+        case 'wildcard':
+          return 0;
+        case 'pulse':
+          // status: 0 = Needs Focus (0%), 1 = Mostly Consistent (60%), 2 = Locked In (100%)
+          if (cell.status === 2) return 100;
+          if (cell.status === 1) return 60;
+          return 0;
+        case 'skill':
+          const lvl = Number(cell.level) || 0;
+          return Math.min(100, Math.round((lvl / 5) * 100));
+        case 'counter':
+          const tgt = Math.max(1, Number(cell.target) || 10);
+          const cnt = Math.max(0, Number(cell.count) || 0);
+          return Math.min(100, Math.round((cnt / tgt) * 100));
+        case 'terms':
+          if (!cell.terms || !cell.terms.length) return 0;
+          const doneTerms = cell.terms.filter(t => t.done).length;
+          return Math.round((doneTerms / cell.terms.length) * 100);
+        case 'checklist':
+          if (!cell.items || !cell.items.length) return 0;
+          const doneItems = cell.items.filter(i => i.done).length;
+          return Math.round((doneItems / cell.items.length) * 100);
+        case 'wam':
+          const wam = Number(cell.currentWam) || 0;
+          if (wam >= 75) return 100;
+          if (wam <= 50) return 20;
+          return Math.round(((wam - 50) / 25) * 100);
+        default:
+          return 0;
+      }
+    }
+
+    // Returns concise badge string for the 9x9 grid cell
+    function getCellBadgeInfo(cell) {
+      const pct = getCellProgress(cell);
+      switch (cell.type) {
+        case 'wildcard':
+          return { text: 'OPEN SLOT', tone: 'text-amber-300 bg-amber-500/15 border-amber-500/40' };
+        case 'pulse':
+          if (cell.status === 2) return { text: `LOCKED IN${cell.streak ? ' · ' + cell.streak + 'x' : ''}`, tone: 'text-emerald-300 bg-emerald-500/15 border-emerald-500/30' };
+          if (cell.status === 1) return { text: `STEADY${cell.streak ? ' · ' + cell.streak + 'x' : ''}`, tone: 'text-sky-300 bg-sky-500/15 border-sky-500/30' };
+          return { text: 'CHECK IN', tone: 'text-slate-400 bg-slate-800/90 border-slate-700' };
+        case 'skill':
+          const lvl = Number(cell.level) || 0;
+          return {
+            text: `LVL ${lvl}/5`,
+            tone: lvl >= 4 ? 'text-emerald-300 bg-emerald-500/15 border-emerald-500/30' : lvl >= 2 ? 'text-sky-300 bg-sky-500/15 border-sky-500/30' : 'text-slate-400 bg-slate-800/90 border-slate-700'
+          };
+        case 'counter':
+          const c = Number(cell.count) || 0;
+          const t = Number(cell.target) || 10;
+          return {
+            text: `${c} / ${t}`,
+            tone: c >= t ? 'text-emerald-300 bg-emerald-500/15 border-emerald-500/30' : c > 0 ? 'text-sky-300 bg-sky-500/15 border-sky-500/30' : 'text-slate-400 bg-slate-800/90 border-slate-700'
+          };
+        case 'terms':
+          const dt = (cell.terms || []).filter(x => x.done).length;
+          const tt = (cell.terms || []).length || 6;
+          return {
+            text: `${dt}/${tt} TERMS`,
+            tone: dt >= tt ? 'text-emerald-300 bg-emerald-500/15 border-emerald-500/30' : dt > 0 ? 'text-sky-300 bg-sky-500/15 border-sky-500/30' : 'text-slate-400 bg-slate-800/90 border-slate-700'
+          };
+        case 'checklist':
+          const di = (cell.items || []).filter(x => x.done).length;
+          const ti = (cell.items || []).length || 4;
+          return {
+            text: `${di}/${ti} DONE`,
+            tone: di >= ti ? 'text-emerald-300 bg-emerald-500/15 border-emerald-500/30' : di > 0 ? 'text-sky-300 bg-sky-500/15 border-sky-500/30' : 'text-slate-400 bg-slate-800/90 border-slate-700'
+          };
+        case 'wam':
+          const w = Number(cell.currentWam) || 0;
+          return {
+            text: `WAM: ${w}`,
+            tone: w >= 75 ? 'text-emerald-300 bg-emerald-500/15 border-emerald-500/30' : 'text-amber-300 bg-amber-500/15 border-amber-500/30'
+          };
+        default:
+          return { text: `${pct}%`, tone: 'text-slate-400 bg-slate-800 border-slate-700' };
+      }
+    }
+
+    function getPillarProgress(pillar) {
+      const activeCells = pillar.cells.filter(c => c.type !== 'wildcard');
+      if (!activeCells.length) return 0;
+      const sum = activeCells.reduce((acc, c) => acc + getCellProgress(c), 0);
+      return Math.round(sum / activeCells.length);
+    }
+
+    function getOverallProgress() {
+      let total = 0;
+      let count = 0;
+      let wildcards = 0;
+      appState.pillars.forEach(p => {
+        p.cells.forEach(c => {
+          if (c.type === 'wildcard') {
+            wildcards++;
+          } else {
+            total += getCellProgress(c);
+            count++;
+          }
+        });
+      });
+      return {
+        pct: count ? Math.round(total / count) : 0,
+        activeCount: count,
+        wildcardCount: wildcards
+      };
+    }
+
+    function cellMatchesFilter(cell) {
+      const pct = getCellProgress(cell);
+      if (currentFilter === 'all') return true;
+      if (currentFilter === 'wildcard') return cell.type === 'wildcard';
+      if (currentFilter === 'attention') return cell.type !== 'wildcard' && pct < 50;
+      if (currentFilter === 'completed') return cell.type !== 'wildcard' && pct >= 75;
+      return true;
+    }
+
+    /********************************************************************
+     * RENDERING THE 9x9 MANDALA GRID & HEADER
+     ********************************************************************/
+    // Order of the nine 3x3 blocks in standard Harada 9x9 layout:
+    // [Pillar 1 (0), Pillar 2 (1), Pillar 3 (2)]
+    // [Pillar 4 (3), CENTER   (C), Pillar 5 (4)]
+    // [Pillar 6 (5), Pillar 7 (6), Pillar 8 (7)]
+    const MANDALA_BLOCK_ORDER = [0, 1, 2, 3, 'CENTER', 4, 5, 6, 7];
+
+    // Inside each 3x3 block, the 8 surrounding cells wrap around index 4 (center):
+    // [cell 0, cell 1, cell 2]
+    // [cell 3, CENTER, cell 4]
+    // [cell 5, cell 6, cell 7]
+    const INNER_3X3_MAP = [0, 1, 2, 3, 'CENTER', 4, 5, 6, 7];
+
+    function renderHeaderStats() {
+      const stats = getOverallProgress();
+      document.getElementById('overallScoreText').textContent = `${stats.pct}%`;
+      document.getElementById('mobileOverallScore').textContent = `${stats.pct}%`;
+      document.getElementById('overallProgressBar').style.width = `${stats.pct}%`;
+      document.getElementById('activeCellsCount').textContent = `${stats.activeCount}/64`;
+      document.getElementById('mainGoalHeaderTitle').textContent = appState.mainGoal;
+
+      // Render Pillar Mini Bar
+      const miniBar = document.getElementById('pillarMiniBar');
+      miniBar.innerHTML = appState.pillars.map((p, idx) => {
+        const theme = PILLAR_THEMES[p.id];
+        const pct = getPillarProgress(p);
+        return `
+          <button onclick="scrollToPillarBlock('${p.id}')" class="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-800 shrink-0 transition-all text-left group">
+            <span class="w-2 h-2 rounded-full ${theme.barColor}"></span>
+            <span class="text-xs font-medium text-slate-300 group-hover:text-white">${theme.shortName}</span>
+            <span class="text-[11px] font-mono font-semibold ${theme.badgeText}">${pct}%</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function renderMandalaGrid() {
+      const container = document.getElementById('mandalaGridContainer');
+
+      if (currentLayout === 'cards') {
+        // Render 8 clean pillar cards without center duplicate
+        container.className = 'grid grid-cols-1 md:grid-cols-2 gap-5';
+        container.innerHTML = appState.pillars.map((pillar, pIdx) => renderOuter3x3Block(pillar, pIdx)).join('');
+        return;
+      }
+
+      container.className = 'grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5';
+      container.innerHTML = MANDALA_BLOCK_ORDER.map(slot => {
+        if (slot === 'CENTER') {
+          return renderCenter3x3Block();
+        }
+        return renderOuter3x3Block(appState.pillars[slot], slot);
+      }).join('');
+    }
+
+    function renderCenter3x3Block() {
+      const stats = getOverallProgress();
+      return `
+        <div class="rounded-2xl bg-slate-900/95 border-2 border-sky-500/50 p-2.5 sm:p-3 shadow-2xl shadow-sky-500/10 flex flex-col justify-between relative overflow-hidden">
+          <div class="flex items-center justify-between px-1 mb-2">
+            <span class="text-[11px] font-mono font-bold uppercase tracking-widest text-sky-400">★ Core Map (Center 3×3)</span>
+            <span class="text-[11px] font-mono text-slate-400">Click pillar to jump</span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2 flex-1">
+            ${INNER_3X3_MAP.map(pos => {
+              if (pos === 'CENTER') {
+                return `
+                  <div onclick="promptEditMainGoal()" class="cell-card cursor-pointer rounded-xl bg-gradient-to-br from-sky-500 via-sky-600 to-indigo-700 p-2.5 flex flex-col items-center justify-center text-center shadow-lg border border-white/25 min-h-[108px] sm:min-h-[120px]">
+                    <span class="text-[9px] font-mono uppercase tracking-widest px-1.5 py-0.5 rounded bg-slate-950/40 text-sky-100 mb-1">MAIN GOAL</span>
+                    <div class="text-xs sm:text-sm font-extrabold text-white leading-tight">${escapeHtml(appState.mainGoal)}</div>
+                    <div class="mt-1.5 text-[11px] font-mono font-bold text-emerald-200">${stats.pct}% Ready</div>
+                  </div>
+                `;
+              }
+              const pillar = appState.pillars[pos];
+              const theme = PILLAR_THEMES[pillar.id];
+              const pct = getPillarProgress(pillar);
+              return `
+                <div onclick="scrollToPillarBlock('${pillar.id}')" class="cell-card cursor-pointer rounded-xl ${theme.centerBg} border ${theme.blockBorder} p-2.5 flex flex-col justify-between min-h-[108px] sm:min-h-[120px] hover:border-white/40">
+                  <div class="flex items-center justify-between gap-1">
+                    <span class="text-[10px] font-mono font-bold ${theme.badgeText}">P${pos + 1}</span>
+                    <span class="text-[10px] font-mono font-bold ${theme.badgeText}">${pct}%</span>
+                  </div>
+                  <div class="text-[11px] sm:text-xs font-bold text-white leading-snug my-1 line-clamp-3">
+                    ${escapeHtml(pillar.title)}
+                  </div>
+                  <div class="w-full h-1.5 bg-slate-950/70 rounded-full overflow-hidden">
+                    <div class="h-full ${theme.barColor}" style="width: ${pct}%"></div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderOuter3x3Block(pillar, pIdx) {
+      const theme = PILLAR_THEMES[pillar.id];
+      const pillarPct = getPillarProgress(pillar);
+
+      return `
+        <div id="block-${pillar.id}" class="rounded-2xl bg-slate-900/75 border ${theme.blockBorder} p-2.5 sm:p-3 shadow-xl flex flex-col justify-between transition-all">
+          <!-- Block Mini Header -->
+          <div class="flex items-center justify-between px-1 mb-2">
+            <div class="flex items-center gap-2 truncate">
+              <span class="w-2 h-2 rounded-full ${theme.barColor} shrink-0"></span>
+              <span class="text-xs font-bold text-slate-200 truncate">${escapeHtml(pillar.title)}</span>
+            </div>
+            <span class="text-xs font-mono font-bold ${theme.badgeText} shrink-0 ml-2">${pillarPct}%</span>
+          </div>
+
+          <!-- 3x3 Inner Cells -->
+          <div class="grid grid-cols-3 gap-2 flex-1">
+            ${INNER_3X3_MAP.map(pos => {
+              if (pos === 'CENTER') {
+                return `
+                  <div class="rounded-xl ${theme.centerBg} border-2 ${theme.blockBorder} p-2.5 flex flex-col items-center justify-center text-center min-h-[108px] sm:min-h-[120px] shadow-inner">
+                    <span class="text-[9px] font-mono uppercase tracking-widest ${theme.badgeText} mb-1">PILLAR ${pIdx + 1}</span>
+                    <div class="text-xs sm:text-[13px] font-extrabold text-white leading-tight">${escapeHtml(pillar.title)}</div>
+                    <div class="w-4/5 h-1.5 bg-slate-950/80 rounded-full overflow-hidden mt-2">
+                      <div class="h-full ${theme.barColor} transition-all duration-300" style="width: ${pillarPct}%"></div>
+                    </div>
+                  </div>
+                `;
+              }
+
+              const cell = pillar.cells[pos];
+              const pct = getCellProgress(cell);
+              const badge = getCellBadgeInfo(cell);
+              const matches = cellMatchesFilter(cell);
+              const dimClass = matches ? 'opacity-100' : 'opacity-25 saturate-0';
+              const isWildcard = cell.type === 'wildcard';
+
+              return `
+                <div onclick="openCellModal(${pIdx}, ${pos})" class="cell-card cursor-pointer rounded-xl ${
+                  isWildcard 
+                    ? 'bg-slate-950/60 border border-dashed border-amber-500/40 hover:border-amber-400' 
+                    : 'bg-slate-950/90 border border-slate-800/90 hover:border-slate-600'
+                } p-2.5 flex flex-col justify-between min-h-[108px] sm:min-h-[120px] relative overflow-hidden ${dimClass}">
+                  
+                  <!-- Top Row: Cell Number & Status Pill -->
+                  <div class="flex items-center justify-between gap-1">
+                    <span class="text-[10px] font-mono text-slate-500">#${pIdx + 1}.${pos + 1}</span>
+                    <span class="text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded border ${badge.tone} truncate">
+                      ${badge.text}
+                    </span>
+                  </div>
+
+                  <!-- Middle: Goal Title -->
+                  <div class="text-[11px] sm:text-xs font-medium ${isWildcard ? 'text-amber-200/80 italic' : 'text-slate-200'} leading-snug my-1.5 line-clamp-3">
+                    ${escapeHtml(cell.title)}
+                  </div>
+
+                  <!-- Bottom: Visual Progress Bar -->
+                  <div class="w-full h-1 bg-slate-800/90 rounded-full overflow-hidden mt-auto">
+                    <div class="h-full ${pct >= 80 ? 'bg-emerald-400' : theme.barColor} transition-all duration-300" style="width: ${pct}%"></div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderAll() {
+      renderHeaderStats();
+      renderMandalaGrid();
+    }
+
+    /********************************************************************
+     * INTERACTIVE GOAL CHECKER MODAL LOGIC
+     ********************************************************************/
+    function openCellModal(pillarIdx, cellIdx) {
+      activeModalCell = { pillarIdx, cellIdx };
+      const pillar = appState.pillars[pillarIdx];
+      const cell = pillar.cells[cellIdx];
+      const theme = PILLAR_THEMES[pillar.id];
+
+      // Update Header & Badges
+      const modal = document.getElementById('cellModal');
+      document.getElementById('modalAccentBar').className = `h-1.5 w-full ${theme.barColor}`;
+      
+      const pBadge = document.getElementById('modalPillarBadge');
+      pBadge.className = `text-[11px] font-mono font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${theme.badgeBg} ${theme.badgeText} ${theme.badgeBorder}`;
+      pBadge.textContent = `${pillar.title} · #${pillarIdx + 1}.${cellIdx + 1}`;
+
+      const typeNames = {
+        pulse: 'Bi-Weekly Habit Pulse',
+        skill: 'Skill Mastery (1–5)',
+        counter: 'Target Counter',
+        terms: 'UNSW Term Tracker',
+        checklist: 'Milestone Checklist',
+        wam: 'WAM Target Gauge',
+        wildcard: 'Customizable Slot'
+      };
+      document.getElementById('modalTrackerTypeBadge').textContent = typeNames[cell.type] || 'Tracker';
+
+      document.getElementById('modalCellTitle').textContent = cell.title;
+      document.getElementById('modalLastChecked').textContent = cell.lastChecked
+        ? `Last updated: ${cell.lastChecked}`
+        : 'Not checked in yet — click below to log progress';
+
+      document.getElementById('modalCellNotes').value = cell.notes || '';
+
+      // Populate Meta Editor inputs
+      document.getElementById('editCellTitleInput').value = cell.title.startsWith('[Open Slot') ? '' : cell.title;
+      document.getElementById('editCellTypeSelect').value = cell.type === 'wildcard' ? 'pulse' : cell.type;
+      document.getElementById('editCounterTargetInput').value = cell.target || 10;
+      handleTrackerTypeChange();
+
+      // Auto-open Customize drawer if this is an Open Wildcard Slot
+      const metaEditor = document.getElementById('modalMetaEditor');
+      if (cell.type === 'wildcard') {
+        metaEditor.classList.remove('hidden');
+      } else {
+        metaEditor.classList.add('hidden');
+      }
+
+      renderModalTrackerBody(cell, theme);
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function renderModalTrackerBody(cell, theme) {
+      const container = document.getElementById('modalTrackerBody');
+
+      if (cell.type === 'wildcard') {
+        container.innerHTML = `
+          <div class="text-center py-4 px-2">
+            <div class="text-amber-300 font-semibold text-sm mb-1">Wildcard Slot Ready to Customize</div>
+            <p class="text-xs text-slate-400">
+              Type your new goal title and pick a tracker style in the box above, then click <strong>"Apply Goal Setup"</strong> to activate this square!
+            </p>
+          </div>
+        `;
+        return;
+      }
+
+      if (cell.type === 'pulse') {
+        const status = Number(cell.status) || 0;
+        const streak = Number(cell.streak) || 0;
+        container.innerHTML = `
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-medium text-slate-300">How consistent were you over the last 2 weeks?</span>
+              <span class="text-xs font-mono text-sky-400">Check-in Streak: <strong>${streak}</strong></span>
+            </div>
+            <div class="grid grid-cols-3 gap-2.5">
+              <button onclick="updatePulseStatus(0)" class="p-3 rounded-xl border text-center transition-all ${
+                status === 0
+                  ? 'bg-rose-500/20 border-rose-500 text-white shadow-lg shadow-rose-500/10'
+                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
+              }">
+                <div class="text-base mb-0.5">⚠️</div>
+                <div class="text-xs font-bold">Needs Focus</div>
+                <div class="text-[10px] text-slate-400 mt-0.5">Slipped lately</div>
+              </button>
+
+              <button onclick="updatePulseStatus(1)" class="p-3 rounded-xl border text-center transition-all ${
+                status === 1
+                  ? 'bg-sky-500/20 border-sky-400 text-white shadow-lg shadow-sky-500/10'
+                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
+              }">
+                <div class="text-base mb-0.5">⚡</div>
+                <div class="text-xs font-bold">Mostly Steady</div>
+                <div class="text-[10px] text-slate-400 mt-0.5">~60–80% on track</div>
+              </button>
+
+              <button onclick="updatePulseStatus(2)" class="p-3 rounded-xl border text-center transition-all ${
+                status === 2
+                  ? 'bg-emerald-500/20 border-emerald-400 text-white shadow-lg shadow-emerald-500/10'
+                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
+              }">
+                <div class="text-base mb-0.5">🔥</div>
+                <div class="text-xs font-bold">Locked In</div>
+                <div class="text-[10px] text-slate-400 mt-0.5">Automatic habit</div>
+              </button>
+            </div>
+            <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs">
+              <span class="text-slate-400">Log a bi-weekly check-in pulse:</span>
+              <div class="flex items-center gap-2">
+                <button onclick="adjustPulseStreak(-1)" class="px-2 py-1 rounded bg-slate-900 border border-slate-800 text-slate-400 hover:text-white">-1</button>
+                <button onclick="adjustPulseStreak(1)" class="px-3 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-semibold hover:bg-emerald-500/30">+1 Check-In Streak</button>
+              </div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (cell.type === 'skill') {
+        const lvl = Number(cell.level) || 0;
+        const tiers = cell.tiers || [
+          '1: Fundamentals & Setup',
+          '2: Guided Practice',
+          '3: Independent Execution',
+          '4: Advanced Workflows',
+          '5: Industry-Ready Mastery'
+        ];
+        container.innerHTML = `
+          <div class="space-y-2.5">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs text-slate-300 font-medium">Select your current competency tier:</span>
+              <span class="text-xs font-mono font-bold text-sky-400">Level ${lvl} / 5</span>
+            </div>
+            <div class="space-y-1.5">
+              ${tiers.map((tierLabel, idx) => {
+                const tierNum = idx + 1;
+                const active = lvl >= tierNum;
+                return `
+                  <button onclick="updateSkillLevel(${tierNum})" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-left transition-all ${
+                    active
+                      ? 'bg-sky-500/15 border-sky-500/50 text-white'
+                      : 'bg-slate-900/90 border-slate-800 text-slate-400 hover:border-slate-700'
+                  }">
+                    <span class="text-xs font-semibold">${escapeHtml(tierLabel)}</span>
+                    <span class="text-xs font-mono ${active ? 'text-emerald-400 font-bold' : 'text-slate-600'}">
+                      ${active ? '✓ UNLOCKED' : `LVL ${tierNum}`}
+                    </span>
+                  </button>
+                `;
+              }).join('')}
+            </div>
+            ${lvl > 0 ? `<button onclick="updateSkillLevel(0)" class="text-[11px] font-mono text-slate-500 hover:text-slate-300 pt-1">Reset to Level 0</button>` : ''}
+          </div>
+        `;
+        return;
+      }
+
+      if (cell.type === 'counter') {
+        const count = Number(cell.count) || 0;
+        const target = Math.max(1, Number(cell.target) || 10);
+        const pct = Math.min(100, Math.round((count / target) * 100));
+        container.innerHTML = `
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-xs text-slate-400">${escapeHtml(cell.unit || 'Progress Counter')}</div>
+                <div class="text-2xl font-mono font-extrabold text-white mt-0.5">${count} <span class="text-sm font-normal text-slate-400">/ ${target} target</span></div>
+              </div>
+              <div class="flex items-center gap-2">
+                <button onclick="updateCounterValue(-1)" class="w-10 h-10 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-lg font-bold text-slate-200 transition-colors">-</button>
+                <button onclick="updateCounterValue(1)" class="px-4 h-10 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-sm transition-colors shadow-lg shadow-sky-500/20">+1 Log</button>
+              </div>
+            </div>
+            <div class="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+              <div class="h-full bg-gradient-to-r from-sky-500 to-emerald-400 transition-all duration-300" style="width: ${pct}%"></div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (cell.type === 'terms') {
+        const terms = cell.terms || DEFAULT_TERMS.map(t => ({ label: t, done: false }));
+        container.innerHTML = `
+          <div class="space-y-2.5">
+            <div class="text-xs text-slate-300 font-medium">Check off each UNSW term you hit this goal:</div>
+            <div class="grid grid-cols-3 gap-2">
+              ${terms.map((t, idx) => `
+                <button onclick="toggleTermCheckbox(${idx})" class="p-2.5 rounded-xl border text-center transition-all ${
+                  t.done
+                    ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-200 font-bold'
+                    : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
+                }">
+                  <div class="text-xs font-mono">${escapeHtml(t.label)}</div>
+                  <div class="text-[10px] mt-0.5">${t.done ? '✓ Completed' : 'Pending'}</div>
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (cell.type === 'checklist') {
+        const items = cell.items || [];
+        container.innerHTML = `
+          <div class="space-y-2">
+            <div class="text-xs text-slate-300 font-medium mb-1">Check off completed milestones:</div>
+            ${items.map((item, idx) => `
+              <button onclick="toggleChecklistItem(${idx})" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-left transition-all ${
+                item.done
+                  ? 'bg-emerald-500/15 border-emerald-500/40 text-white'
+                  : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'
+              }">
+                <span class="text-xs font-medium ${item.done ? 'line-through text-slate-300' : ''}">${escapeHtml(item.label)}</span>
+                <span class="text-xs font-mono ${item.done ? 'text-emerald-400 font-bold' : 'text-slate-500'}">
+                  ${item.done ? '✓ DONE' : 'TODO'}
+                </span>
+              </button>
+            `).join('')}
+            <div class="pt-2 flex gap-2">
+              <input type="text" id="newChecklistItemInput" placeholder="Add custom milestone..." class="flex-1 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-white focus:outline-none focus:border-sky-500" />
+              <button onclick="addCustomChecklistItem()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-sky-300 font-semibold">+ Add</button>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (cell.type === 'wam') {
+        const currentWam = Number(cell.currentWam) || 75;
+        const isDistinction = currentWam >= 75;
+        container.innerHTML = `
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-xs text-slate-400">Current Cumulative UNSW WAM</div>
+                <div class="text-2xl font-mono font-extrabold ${isDistinction ? 'text-emerald-400' : 'text-amber-300'}">
+                  ${currentWam} <span class="text-xs font-normal text-slate-400">/ 75+ Distinction Target</span>
+                </div>
+              </div>
+              <span class="px-2.5 py-1 rounded-full text-xs font-mono font-bold ${
+                isDistinction ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+              }">
+                ${isDistinction ? 'ON TARGET (DN)' : 'PUSH FOR 75+'}
+              </span>
+            </div>
+            <input type="range" min="50" max="95" step="0.5" value="${currentWam}" oninput="updateWamValue(this.value)" class="w-full accent-sky-400 cursor-pointer" />
+            <div class="flex justify-between text-[10px] font-mono text-slate-500">
+              <span>50 (Pass)</span>
+              <span>65 (Credit)</span>
+              <span class="text-sky-400 font-bold">75 (Distinction)</span>
+              <span>85+ (HD)</span>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    /********************************************************************
+     * TRACKER INTERACTION HANDLERS
+     ********************************************************************/
+    function stampCheckIn(cell) {
+      const now = new Date();
+      cell.lastChecked = now.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+      document.getElementById('modalLastChecked').textContent = `Last updated: ${cell.lastChecked}`;
+    }
+
+    function getActiveCellRef() {
+      const { pillarIdx, cellIdx } = activeModalCell;
+      const pillar = appState.pillars[pillarIdx];
+      const cell = pillar.cells[cellIdx];
+      const theme = PILLAR_THEMES[pillar.id];
+      return { pillar, cell, theme };
+    }
+
+    function updatePulseStatus(newStatus) {
+      const { cell, theme } = getActiveCellRef();
+      cell.status = newStatus;
+      if (newStatus > 0 && (!cell.streak || cell.streak === 0)) {
+        cell.streak = 1;
+      }
+      stampCheckIn(cell);
+      saveState();
+      renderModalTrackerBody(cell, theme);
+    }
+
+    function adjustPulseStreak(delta) {
+      const { cell, theme } = getActiveCellRef();
+      cell.streak = Math.max(0, (Number(cell.streak) || 0) + delta);
+      stampCheckIn(cell);
+      saveState();
+      renderModalTrackerBody(cell, theme);
+    }
+
+    function updateSkillLevel(newLevel) {
+      const { cell, theme } = getActiveCellRef();
+      cell.level = newLevel;
+      stampCheckIn(cell);
+      saveState();
+      renderModalTrackerBody(cell, theme);
+    }
+
+    function updateCounterValue(delta) {
+      const { cell, theme } = getActiveCellRef();
+      cell.count = Math.max(0, (Number(cell.count) || 0) + delta);
+      stampCheckIn(cell);
+      saveState();
+      renderModalTrackerBody(cell, theme);
+    }
+
+    function toggleTermCheckbox(termIdx) {
+      const { cell, theme } = getActiveCellRef();
+      if (!cell.terms) cell.terms = DEFAULT_TERMS.map(t => ({ label: t, done: false }));
+      cell.terms[termIdx].done = !cell.terms[termIdx].done;
+      stampCheckIn(cell);
+      saveState();
+      renderModalTrackerBody(cell, theme);
+    }
+
+    function toggleChecklistItem(itemIdx) {
+      const { cell, theme } = getActiveCellRef();
+      if (!cell.items) return;
+      cell.items[itemIdx].done = !cell.items[itemIdx].done;
+      stampCheckIn(cell);
+      saveState();
+      renderModalTrackerBody(cell, theme);
+    }
+
+    function addCustomChecklistItem() {
+      const input = document.getElementById('newChecklistItemInput');
+      const val = (input.value || '').trim();
+      if (!val) return;
+      const { cell, theme } = getActiveCellRef();
+      if (!cell.items) cell.items = [];
+      cell.items.push({ label: val, done: false });
+      input.value = '';
+      stampCheckIn(cell);
+      saveState();
+      renderModalTrackerBody(cell, theme);
+    }
+
+    function updateWamValue(val) {
+      const { cell, theme } = getActiveCellRef();
+      cell.currentWam = Number(val);
+      stampCheckIn(cell);
+      saveState();
+      renderModalTrackerBody(cell, theme);
+    }
+
+    function saveCurrentCellNotes() {
+      const { cell } = getActiveCellRef();
+      cell.notes = document.getElementById('modalCellNotes').value;
+      saveState();
+    }
+
+    /********************************************************************
+     * CUSTOMIZE GOAL / ACTIVATE WILDCARD SLOT
+     ********************************************************************/
+    function toggleEditCellMeta() {
+      const editor = document.getElementById('modalMetaEditor');
+      editor.classList.toggle('hidden');
+    }
+
+    function handleTrackerTypeChange() {
+      const type = document.getElementById('editCellTypeSelect').value;
+      const targetWrap = document.getElementById('editCounterTargetWrap');
+      if (type === 'counter') {
+        targetWrap.classList.remove('hidden');
+      } else {
+        targetWrap.classList.add('hidden');
+      }
+    }
+
+    function saveCellMetaChanges() {
+      const { cell, theme } = getActiveCellRef();
+      const newTitle = document.getElementById('editCellTitleInput').value.trim();
+      const newType = document.getElementById('editCellTypeSelect').value;
+      const newTarget = Number(document.getElementById('editCounterTargetInput').value) || 10;
+
+      if (newTitle) {
+        cell.title = newTitle;
+      }
+      cell.type = newType;
+
+      // Initialize default properties for the chosen tracker type if missing
+      if (newType === 'pulse' && typeof cell.status === 'undefined') {
+        cell.status = 0;
+        cell.streak = 0;
+      } else if (newType === 'skill' && typeof cell.level === 'undefined') {
+        cell.level = 0;
+        cell.tiers = [
+          '1: Basics & Setup',
+          '2: Guided Practice',
+          '3: Independent Builds',
+          '4: Complex Problems',
+          '5: Industry Mastery'
+        ];
+      } else if (newType === 'counter') {
+        cell.count = cell.count || 0;
+        cell.target = newTarget;
+        cell.unit = cell.unit || 'Completed';
+      } else if (newType === 'terms' && !cell.terms) {
+        cell.terms = DEFAULT_TERMS.map(t => ({ label: t, done: false }));
+      } else if (newType === 'checklist' && !cell.items) {
+        cell.items = [
+          { label: 'Milestone 1', done: false },
+          { label: 'Milestone 2', done: false },
+          { label: 'Milestone 3', done: false }
+        ];
+      } else if (newType === 'wam' && !cell.currentWam) {
+        cell.currentWam = 75;
+      }
+
+      stampCheckIn(cell);
+      saveState();
+      openCellModal(activeModalCell.pillarIdx, activeModalCell.cellIdx);
+    }
+
+    function closeCellModal() {
+      const modal = document.getElementById('cellModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function stepCell(direction) {
+      let { pillarIdx, cellIdx } = activeModalCell;
+      cellIdx += direction;
+      if (cellIdx > 7) {
+        cellIdx = 0;
+        pillarIdx = (pillarIdx + 1) % 8;
+      } else if (cellIdx < 0) {
+        cellIdx = 7;
+        pillarIdx = (pillarIdx + 7) % 8;
+      }
+      openCellModal(pillarIdx, cellIdx);
+    }
+
+    function startBiWeeklyReview() {
+      // Opens the first cell that needs attention, or Pillar 1 Cell 1
+      for (let p = 0; p < appState.pillars.length; p++) {
+        for (let c = 0; c < appState.pillars[p].cells.length; c++) {
+          const cell = appState.pillars[p].cells[c];
+          if (cell.type !== 'wildcard' && getCellProgress(cell) < 60) {
+            openCellModal(p, c);
+            return;
+          }
+        }
+      }
+      openCellModal(0, 0);
+    }
+
+    /********************************************************************
+     * NAVIGATION, FILTERS, & BACKUP UTILITIES
+     ********************************************************************/
+    function setFilter(filterName) {
+      currentFilter = filterName;
+      ['all', 'attention', 'completed', 'wildcard'].forEach(f => {
+        const btn = document.getElementById(`filter-${f}`);
+        if (f === filterName) {
+          btn.className = 'px-2.5 py-1.5 rounded-lg font-medium transition-colors bg-sky-500/20 text-sky-300 border border-sky-500/30';
+        } else {
+          btn.className = 'px-2.5 py-1.5 rounded-lg font-medium text-slate-400 hover:text-slate-200 transition-colors';
+        }
+      });
+      renderMandalaGrid();
+    }
+
+    function setLayoutMode(mode) {
+      currentLayout = mode;
+      const mBtn = document.getElementById('layout-mandala');
+      const cBtn = document.getElementById('layout-cards');
+      if (mode === 'mandala') {
+        mBtn.className = 'px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-800 text-sky-400 border border-sky-500/30';
+        cBtn.className = 'px-2.5 py-1 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200';
+      } else {
+        cBtn.className = 'px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-800 text-sky-400 border border-sky-500/30';
+        mBtn.className = 'px-2.5 py-1 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200';
+      }
+      renderMandalaGrid();
+    }
+
+    function scrollToPillarBlock(pillarId) {
+      const el = document.getElementById(`block-${pillarId}`);
+      if (!el) return;
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.remove('highlight-block');
+      void el.offsetWidth;
+      el.classList.add('highlight-block');
+    }
+
+    function promptEditMainGoal() {
+      // Open backup modal or inline edit for main goal
+      openCellModal(0, 0);
+    }
+
+    function openBackupModal() {
+      const m = document.getElementById('backupModal');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    }
+
+    function closeBackupModal() {
+      const m = document.getElementById('backupModal');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+      document.getElementById('backupToast').classList.add('hidden');
+    }
+
+    function showBackupToast(msg) {
+      const toast = document.getElementById('backupToast');
+      toast.textContent = msg;
+      toast.classList.remove('hidden');
+    }
+
+    function exportGridJSON() {
+      const jsonStr = JSON.stringify(appState, null, 2);
+      const textarea = document.getElementById('importJsonTextarea');
+      textarea.value = jsonStr;
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        showBackupToast('Copied full Harada Grid JSON to clipboard!');
+      } catch (e) {
+        showBackupToast('JSON generated below — copy it manually.');
+      }
+    }
+
+    function importGridJSON() {
+      const raw = document.getElementById('importJsonTextarea').value.trim();
+      if (!raw) return;
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.pillars && parsed.pillars.length === 8) {
+          appState = parsed;
+          saveState();
+          showBackupToast('Grid restored successfully!');
+        } else {
+          showBackupToast('Invalid Harada JSON structure.');
+        }
+      } catch (e) {
+        showBackupToast('Could not parse JSON.');
+      }
+    }
+
+    let resetArmed = false;
+    function confirmResetGrid() {
+      const btn = document.getElementById('resetConfirmBtn');
+      if (!resetArmed) {
+        resetArmed = true;
+        btn.textContent = 'Click Again to Confirm Reset';
+        setTimeout(() => {
+          resetArmed = false;
+          btn.textContent = 'Reset All Progress';
+        }, 4000);
+        return;
+      }
+      appState = createDefaultState();
+      resetArmed = false;
+      btn.textContent = 'Reset All Progress';
+      saveState();
+      showBackupToast('Grid reset to fresh default state.');
+    }
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // Close modals on Escape key or backdrop click
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeCellModal();
+        closeBackupModal();
+      }
+    });
+
+    document.getElementById('cellModal').addEventListener('click', (e) => {
+      if (e.target.id === 'cellModal') closeCellModal();
+    });
+
+    document.getElementById('backupModal').addEventListener('click', (e) => {
+      if (e.target.id === 'backupModal') closeBackupModal();
+    });
+
+    window.onload = function () {
+      renderAll();
+    };
+  </script>
+</body>
+</html>
